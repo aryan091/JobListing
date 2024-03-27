@@ -1,0 +1,102 @@
+.container {
+    box-sizing: border-box;
+    width: 50vw;
+    padding: 0vh 7vw;
+    position: relative;
+}
+
+.skills {
+    margin-left: 13.75vw;
+    margin-bottom: 1vw;
+    font-size: 12px;
+}
+
+.skills div {
+    display: inline-block;
+    padding-left: 5px;
+    margin: 0px 5px;
+    background-color: pink;
+    border-radius: 3px;
+}
+
+.skills button {
+    all: unset;
+    padding: 0px 5px;
+    height: 100%;
+    color: #FFFFFF;
+    background-color: #ff6b6b;
+    border: none;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+
+
+/* .jobForm {} */
+
+.formGroup {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    margin: 0.8rem 0;
+
+}
+
+.h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.input {
+
+    width: 60%;
+    border-radius: 6px;
+    padding: 0.5em 0.2em;
+    height: 1.1rem;
+    float: left;
+    color: #7b7b7b;
+    border: 2px solid #c2c2c2;
+    background-color: #FFFFFF;
+}
+
+.select {
+    border-radius: 6px;
+    padding: 0em 0.2em;
+    height: 2rem;
+    border: 2px solid #c2c2c2;
+    color: #adadad;
+    background-color: #FFFFFF;
+    position: absolute;
+    left: 21vw;
+}
+
+.selectGroup {
+    font-size: 1rem;
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+
+}
+
+.cancel {
+    background: #ffffff;
+    border: 0.848485px solid #cecece;
+    height: 48px;
+    border-radius: 6.50784px;
+    padding: 1em 2em;
+    float: right;
+
+    margin-right: 16px;
+    color: #adadad;
+}
+
+.add {
+    background: #ed5353;
+    border-radius: 6.50784px;
+    padding: 1em 2em;
+    border: none;
+    color: white;
+    font-weight: 600;
+    float: right;
+}
