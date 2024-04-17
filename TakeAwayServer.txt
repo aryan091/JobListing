@@ -1,0 +1,702 @@
+SERVER
+
++++++++++++++++++++++++++++++++++++
+
+Index 
+
+1. FILES STRUCTURE
+2. MODELS
+3. CONTROLLERS
+4. MIDDLEWARES
+5. ROUTES
+6. ENTRY FILE 
+
++++++++++++++++++++++++++++++++++++
+
+
+1. FOLDER STRUCTURE
+
+- controller
+Here we write thw business logic
+
+- middlewares
+Its like - *Jaane se phele merese milke jaa* 
+like - verify token
+
+- models
+Here we write code for database schema
+
+- routes
+Method and Routes are defined Here
+
+- .env
+Here we store environment variables which we can't show / expose in code
+
+- .gitignore
+Here we store path of that files which is not going to add in github
+
+- server.js
+It is entry point of our code
+Here routes , port , connection to DB is written
+_______________________________________________________________________________________________________________________
+2. Create models
+
+const mongoose = require("mongoose");
+
+const jobSchema = new mongoose.Schema(
+    {
+        // Normal Felids
+        companyName: {
+            type: String,
+            required: true,
+        },
+        // Reference to User
+        refUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref:"User"
+        }
+    }
+    ,
+    // This is for updated time and created time
+    {timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }}
+
+    // Exporting the model
+    // Mongoose will change Job to jobs internally  
+    module.exports = mongoose.model("Job", jobSchema);
+)
+
+After Creating Models we will write Controllers.
+
+_____________________________________________________________________________________________________________________
+
+3. Create Controllers
+
+---------------------------------------------------------------------------------------------------------------------
+
+3.1 User
+
+First understand packages we used
+
+const { json } = require('body-parser');
+const User = require('../models/user.js')
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken')
+
+
+------------
+
+require('body-parser'): 'body-parser' is a middleware used to parse incoming request bodies in a middleware before your handlers, available under the req.body property.
+
+------------
+
+Import User Model which we used in creating DB Schema
+
+-------------------------
+Bcrypt - is used for password hashing
+
+---------------------------
+
+Jwt - is used for create a verify token to facilitate user login/sign up activities
+
+-------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+
+3.1.1 const registerUser= async(req,res) => {
+    try {
+
+        // We will get this things from request body
+       const { name , password , email , mobile} = req.body;
+
+        // If any of them is not present we will send a json response with 400 code 
+
+        if(!name || !password || !email || !mobile){
+            return res.status(400).json({
+                message: "Please fill all the fields"
+            })
+        }
+
+        // We are registering user if we already have that user that will be issue So we check it first
+        // We will check in Db using findOne method
+        const isExistingUser = await User.findOne({email})
+        if(isExistingUser){
+            return res.status(400).json({
+                message: "User already exists"
+            })
+            
+        }
+        // if this is new user we will have to hash it password first then store in DB
+
+       const hashedPassword = await bcrypt.hash(password, 10)
+        
+
+        // After hashing a password we create a new `ModelName` object and pass the all values in form of JSON
+
+        const userData = new User({
+            name,
+            password: hashedPassword,
+            email,
+            mobile
+        })
+
+        // Then we save it using .save()
+
+        await userData.save();
+        res.json({
+            message: "User created successfully"
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            message: error
+        })
+    }
+
+}
+
+---------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+
+// Now we will see the Login Part
+
+3.1.2 - const loginUser = async(req,res) => {
+    try {
+        // We will get email & password from a request body coming from frontend.
+        const {email,password}  = req.body
+
+        // We will make sure both fields are filled.
+        if(!password || !email ){
+            return res.status(400).json({
+                message: "Please fill all the fields"
+            })
+        }
+        
+        // We will find user using .findOne() 
+
+        const userDetails = await User.findOne({email})
+        if(!userDetails){
+            return res.status(400).json({
+                message: "User does not exist"
+            })
+        }
+
+        // if user is there we will get password and decrypt it 
+
+        const passwordMatch = await bcrypt.compare(password, userDetails.password)
+
+        if(!passwordMatch){
+            return res.status(400).json({
+                message: "Invalid credentials"
+            })
+        }
+
+        // if password is correct then we get to do a important work.
+
+        // Sign a jwt token
+
+        // Certainly! In simpler terms, jwt.sign is a function used to create a special type of token called a JSON Web Token (JWT). This token contains information that you want to share securely with another system or service.
+
+        // Here's how it works:
+
+        // You provide jwt.sign with some data you want to include in the token, like a user's ID or some other information.
+        // You also provide a secret key known only to your system.
+        // jwt.sign takes this data and the secret key and creates a unique string of characters, which is your JWT.
+        // This JWT can then be sent to other parts of your application or even to other systems.
+        // When someone receives this JWT, they can use another function (jwt.verify) along with the same secret key to check if the token is valid and hasn't been tampered with.
+        // If the token is valid, they can extract the information you included in the token and use it securely in their system.
+        // So, jwt.sign is essentially a tool for creating secure tokens that can be safely shared between different parts of your application or between different systems.
+
+
+
+        // here we only send id in payload , secret key , and expiry time of token
+
+        const token = jwt.sign({userId: userDetails?._id}, process.env.JWT_SECRET_KEY, {expiresIn: '1d'})
+
+        // then we send token ,userId, user name in response to front end 
+
+        res.json({
+            message: "Login successful",
+            token:token,
+            name:userDetails.name,
+            userId: userDetails?._id,
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            message: error,
+            
+        })
+    }
+}
+
+---------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+
+
+
+
+3.2 Job
+
+// Now See Job Controller
+
+const { decodeJwtToken } = require("../middlewares/verifyToken");
+const Job = require("../models/job");
+const { Types: { ObjectId } } = require("mongoose"); 
+
+decodeJwtToken - we will learn about it when it come in action.
+Job - model created bs us.
+ObjectId - we will learn about it when it come in action.
+
+---------------------------------------------------------------------------------------------------------------------
+
+3.2.1 const createJobPost = async (req, res, next) => {
+    try {
+        const {
+            get all data from request.body which comes from frontend
+            refUserId,
+        } = req.body;
+
+        if (
+            !companyName ||
+            // make a check on it that all should be present
+                    ) {
+            return res.status(400).json({
+                errorMessage: "Bad request",
+            });
+        }
+        // When a user creates a job post, you're attaching an authorization token to the request headers using 
+
+        // axios.defaults.headers.common["Authorization"] = token;.
+
+        // This token likely contains the user's identification information, such as their user ID, which is then sent along with the request.
+
+        // So, when the backend receives the request to create a job post, it extracts the user ID from the request headers (where it's been attached) using req.userId to determine which user is creating the job post. This user ID is then used to associate the job post with the correct user in the database.
+
+        const userId = req.userId;
+
+        // We create a new `ModelName` object and pass the all values in form of JSON
+        // And in refUserId we add id we get from token data 
+
+        // As we see it is mandatory the person who is login only creates the post
+
+        const jobDetails = new Job({
+            Pass field names
+            jobType,
+            refUserId: userId,
+        });
+
+        // Then save the job
+
+        await jobDetails.save();
+        res.json({ message: "Job created successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+---------------------------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------------------------
+
+3.2.2 const getJobDetailsById = async (req, res, next) => {
+
+
+    try {
+
+        // const reqUrl = `http://localhost:4000/api/v1/job/job-details/${jobPostId}`;
+
+        // We get job id from url
+
+        const jobId = req.params.jobId;
+
+        // We have middleware for get user id we have sent token in auth header from frontend *req.headers["authorization"]*
+        // we will decode the token using jwt.verify() and get userID from there
+
+        const userId = decodeJwtToken(req.headers["authorization"]);
+
+        // Get Job Details by Id
+
+        const jobDetails = await Job.findById(jobId);
+
+        // If job doesn't found throw error
+
+        if (!jobDetails) 
+        {
+            return res.status(400).json({
+                errorMessage: "Bad request",
+            });
+        
+        }
+
+        // Here comes the interesting part
+        // Let isEditable to false 
+
+        let isEditable = false
+
+        // if both userId and jobDetails userId is present we will compare them
+
+
+        if (userId &&  jobDetails.refUserId) {
+            
+            
+            // As we know jobDetails also have a user id if it matches then we will say that he/she can edit
+            // our usedId which we get from token is in form of String we have to convert it first into object
+            // then we run equals method on it if it is equal we we set isEditable flag is true
+
+            const formattedUserId = new ObjectId(userId); // Use new keyword to create ObjectId instance
+            if (jobDetails.refUserId.equals(formattedUserId)) {
+                isEditable = true;
+            }
+        }
+
+        
+        // Send job details and isEditable in json form 
+        res.json({ jobDetails , isEditable}); 
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+---------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+
+3.2.3 const updateJobDetailsById = async (req, res, next) => {
+    try {
+
+        // const reqUrl = `http://localhost:4000/api/v1/job/update/${jobPostId}`;
+         // We get job id from url
+
+        const jobId = req.params.jobId;
+
+        // As we know we have saved userId in DB model
+        const userId = req.userId;
+
+        if (!jobId) {
+            return res.status(400).json({
+                errorMessage: "Bad Request",
+            });
+        }
+
+        // If the userId doesn't match but the jobId is present in the database, the query will return null or an empty result set. This means that there is a job with the provided jobId in the database, but it is not associated with the user identified by userId.
+
+        // if isJobExists is null or an empty result set, the function will respond with a status of 400 and a message indicating that it's a bad request. This is because the operation is attempting to update a job that doesn't belong to the user who is making the request, which might be considered unauthorized access or an invalid request, depending on the application's business logic.
+
+        const isJobExists =  await Job.findOne({ _id: jobId, refUserId: userId });
+        
+
+        if (!isJobExists) {
+            return res.status(400).json({
+                errorMessage: "Bad Request",
+            });
+        }
+
+        // if job exist that means we get the job id which is having the desired usedId
+
+        const {
+            Get params from rrq body 
+            skills,
+        } = req.body;
+
+        if (
+            // All should be present
+            !skills
+        ) {
+            return res.status(400).json({
+                errorMessage: "Bad request",
+            });
+        }
+
+        await Job.updateOne(
+
+                // This object specifies the criteria that the document must match in order to be updated.
+            { _id: jobId, refUserId: userId },
+            {
+                // These fields are being updated with the new values provided in the request body. Only the fields specified here will be updated, while other fields in the document will remain unchanged.
+
+                $set: {
+                    companyName,
+                    logoUrl,
+                    title,
+                    description,
+                    salary,
+                    location,
+                    duration,
+                    locationType,
+                    information,
+                    jobType,
+                    skills,
+                },
+            }
+        );
+
+        res.json({ message: "Job updated successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+---------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+
+3.2.4 const getAllJobs = async (req, res, next) => {
+    try {
+
+        // const reqUrl = `http://localhost:4000/api/v1/job/all?title=${filter?.title || ""}&skills=${filter?.skills || ""}`;
+        // As we see title and skills are query parameter
+
+        const title = req.query.title || "";
+        const skills = req.query.skills;
+
+        let filteredSkills;
+        let filter = {};
+
+        if (skills) {
+            filteredSkills = skills.split(",");
+            // RegExp constructor with two arguments: element (the skill) and "i" (which stands for "case-insensitive"). This means that the regular expression will match the skill regardless of whether it's written in uppercase or lowercase.
+
+            const caseInsensitiveFilteredSkills = filteredSkills.map(
+                (element) => new RegExp(element, "i")
+            );
+
+            // $in is a special MongoDB query operator that checks if a field contains any of the values specified in an array.It's similar to saying "find documents where the skills field includes any of the skills provided in the caseInsensitiveFilteredSkills array."
+
+            filter = { skills: { $in: caseInsensitiveFilteredSkills } };
+        }
+
+        // title: { $regex: title, $options: "i" }: It specifies that the documents being searched for should have a title field that matches a regular expression. The regular expression is created from the title variable, allowing for a partial match ($regex) and case-insensitivity ($options: "i").
+
+        // ...filter: This spreads the properties of the filter object into the search criteria. The filter object might contain additional criteria, such as filtering by skills, as we discussed earlier.
+
+        const jobList = await Job.find(
+            {
+                title: { $regex: title, $options: "i" },
+                ...filter,
+            }
+
+        // { companyName: 1, title: 1 }:
+        // This part specifies which fields from the matching documents should be included in the result. 
+        // companyName: 1, title: 1: It indicates that only the companyName and title fields should be returned (1 indicates inclusion, while 0 would indicate exclusion).
+
+
+            { companyName: 1, title: 1 }
+        );
+
+        res.json({ data: jobList });
+    } catch (error) {
+        next(error);
+    }
+};
+
+---------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+
+_____________________________________________________________________________________________________________________
+
+4. MIDDLEWARES
+
+// This method is used to authenticate user
+
+const jwt = require("jsonwebtoken");
+
+const verifyToken = (req, res, next) => {
+    try {
+        const headerToken = req.headers["authorization"];
+
+        // get token from header which is stored in Auth header by frontend 
+
+        // if no token is there that means user is not logged in or token has expired
+
+        if (!headerToken) {
+            return res.status(401).json({ message: "Unauthorized access" });
+        }
+
+        // We will decode token and take id from there which we assigned to req.id 
+        // VerifyToken only call when there is update or create request
+
+        const decode = jwt.verify(headerToken, process.env.JWT_SECRET_KEY);
+        req.userId = decode.userId;
+
+        // this next will tell other middleware that my work is done you should get started
+
+        next();
+    } catch (error) {
+        console.log(error);
+        res.status(401).json({ errorMessage: "Invalid token!" , isTokenExpired : true});
+    }
+};
+
+// We see it usage at different places we will not discuss it basically it used to get access of data stored in payload
+
+const decodeJwtToken = (authHeader) => {
+    try {
+        
+        if (!authHeader) {
+            console.log("Authorization header is missing.");
+            return;
+        }else
+        {
+            console.log("Authorization header is present.",authHeader);
+        }
+
+        const decode = jwt.verify(authHeader, process.env.JWT_SECRET_KEY);
+        console.log("Decoded token:", decode);
+
+        const userId = decode.userId;
+        if (!userId) {
+            console.log("User ID is missing in the decoded token.");
+            return;
+        }
+
+        return userId;
+        
+    } catch (error) {
+        console.log("Error decoding JWT token:", error);
+        return;
+    }
+}
+
+
+module.exports = {verifyToken, decodeJwtToken};
+
+_____________________________________________________________________________________________________________________
+
+5. ROUTES
+
+-----------------------------------------------------------------------------------------------------------------------
+5.1 JOB ROUTES
+
+const express = require("express");
+
+// get router from express
+
+const router = express.Router();
+
+// get controller
+
+const jobController = require("../controller/job");
+
+// get middleware
+
+const {verifyToken} = require("../middlewares/verifyToken");
+
+// Here are the route descriptions on which frontend will make a call
+// As we can when create method called first it will verify user if it goes well then user can create post
+
+router.post("/create", verifyToken, jobController.createJobPost);
+router.get("/job-details/:jobId", jobController.getJobDetailsById);
+router.put("/update/:jobId", verifyToken, jobController.updateJobDetailsById);
+router.get("/all", jobController.getAllJobs);
+
+module.exports = router;
+
+-----------------------------------------------------------------------------------------------------------------------
+
+
+-----------------------------------------------------------------------------------------------------------------------
+5.2 AUTH ROUTES
+
+const express = require('express');
+const router = express.Router();
+const authController = require('../controller/user.js')
+
+router.post("/register",authController.registerUser)
+router.post("/login",authController.loginUser)
+
+
+module.exports = router
+-----------------------------------------------------------------------------------------------------------------------
+
+_____________________________________________________________________________________________________________________
+
+6. ENTRY FILE
+
+const express = require('express') //Express
+const dotenv = require('dotenv').config() // For Reading writing .env file
+const mongoose = require("mongoose"); // Mongo Db Connector
+const authRoute = require('./routes/auth.js') // Our Routes for User
+const jobRoute = require('./routes/job.js') // Our Routes for Jobs
+
+
+/* CORS stands for Cross-Origin Resource Sharing. It's a security feature implemented in web browsers to restrict web pages from making requests to a different origin (domain) than the one that served the page.
+
+Here's a brief explanation:
+
+Same-Origin Policy: By default, web browsers enforce a "same-origin policy", which means a web page can only make requests to the same origin (domain, protocol, and port) as the one that served the page. This policy is in place to prevent malicious websites from accessing sensitive data from other websites without permission.
+
+Cross-Origin Requests: Sometimes, you might need to make requests from a web page to a different domain. For example, if your frontend code is hosted on one domain, but you need to fetch data from an API hosted on another domain. These requests are called "cross-origin requests".
+
+CORS Mechanism: CORS is a mechanism that allows servers to specify which origins are allowed to access their resources through HTTP headers. When a web page makes a cross-origin request, the browser checks for these CORS headers in the server's response. If the server indicates that the request is allowed (by including the appropriate CORS headers), the browser allows the request to proceed. Otherwise, it blocks the request.
+
+CORS Headers: There are several CORS headers that servers can use to control cross-origin requests, including:
+
+Access-Control-Allow-Origin: Specifies which origins are allowed to access the resource.
+Access-Control-Allow-Methods: Specifies which HTTP methods (e.g., GET, POST) are allowed for the request.
+Access-Control-Allow-Headers: Specifies which headers are allowed in the request.
+Access-Control-Allow-Credentials: Specifies whether credentials (such as cookies) can be included in the request.
+In summary, CORS is a security feature that allows servers to control access to their resources from different origins, helping to prevent unauthorized access and protect users' data.*/
+
+const cors = require('cors')
+
+
+const app = express()
+
+
+// Attaching middlewares
+
+//express.json() is a middleware function in Express that parses incoming requests with JSON payloads. It automatically parses the request body as JSON if the Content-Type header of the request is set to application/json.
+
+//Once parsed, the JSON data from the request body is available in req.body for further processing within your Express routes.
+
+app.use(express.json())
+
+// cors() is a middleware function used to enable Cross-Origin Resource Sharing (CORS) in an Express application.
+
+app.use(cors())
+
+// Specifying Routes
+
+app.use("/api/v1/auth",authRoute)
+app.use("/api/v1/job",jobRoute)
+
+
+// app.use("*", (req, res) => {
+//     res.status(404).json({ errorMessage: "Route not found!" });
+// });
+
+app.use((error, req, res, next) => {
+    console.log(error);
+    res.status(500).json({ errorMessage: "Something went wrong!" });
+});
+
+// Set Port
+
+const port = process.env.PORT || 3000
+
+
+
+app.get('/api/health', (req, res) => {
+    console.log('Server is up... :)')
+    res.json({ 
+        service: 'Backend Joblisting Server',
+        status:'ACTIVE',
+        time:new Date() 
+})
+})
+
+// Mongoose Integration
+
+app.listen(port, () => {
+    mongoose
+      .connect(process.env.MONGODB_URL)
+      .then(() => console.log(`Server is up on ${process.env.PORT} :)`))
+      .catch((error) => console.log(error));
+  });
+  

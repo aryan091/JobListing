@@ -1,0 +1,329 @@
+CLIENT
+
++++++++++++++++++++++++++++++++++++
+
+Index 
+
+1. FILES STRUCTURE
+2. ALL FILES INFORMATION
+3. API
+4. COMPONENTS 
+
++++++++++++++++++++++++++++++++++++
+
+_____________________________________________________________________________________________________________________
+
+1. FILES STRUCTURE
+
+- In Src 
+
+-- apis -> This folder is for api calls
+
+-- assets -> This folder is for storing icons / 
+
+-- components -> This folder is for storing components
+    Like Home , JobDetails , JobPost , Login , Protected Route , Register
+
+-- pages -> This folder will contain pages for all components
+
+-- utils -> This folder contains all the things which are repetitive in Nature and is used as same
+________________________________________________________________________________________________________________________
+
+2. Let's see about different files 
+
+- index.js -> We will not change anything in it
+
+- index.css -> We will remove everything and paste that
+*{
+  margin: 0;
+  padding: 0;
+}
+
+html{
+  box-sizing: border-box;
+}
+
+- App.js -> Providing all Routes 
+
+return (
+    <BrowserRouter>
+
+      <Routes>
+      Provide all routes
+
+      <Route path="/" element={<HomePage />} />
+
+        Provide all protected routes
+        <Route
+                    path="/job-post"
+                    element={<ProtectedRoute Component={JobPostPage} />}
+                />
+        
+
+
+      </Routes>
+    
+    </BrowserRouter>
+  );
+
+- pages
+-- HomePage -> The foemat will remain same for all pages
+
+import React from "react";
+import Home from "../../components/Home/Home";
+
+export default function () {
+    return (
+        <div>
+            <Home />
+        </div>
+    );
+}
+
+_____________________________________________________________________________________________________________________
+
+3. Lets look about APIs
+
+Why we use Axios over Fetch ?
+
+** FETCH **
+- If we have to send body in Fetch *We have to stringify it first* 
+- we also get * response in string format*.*So we have to convert it into json*
+- Manual Error Handling by .then .catch
+
+** AXIOS **
+- If we have to send body in Fetch *We can simply send a json object* 
+- we also get * response in json format*.
+- Automatic Error Handling
+- Using Interceptor
+- Easy request abort setting
+- Secure
+
+Interceptor - Axios interceptors are middleware functions that allow you to tap into the request and response flows. They offer a gateway to modify, authenticate, or handle errors at a centralized level. Setting Up a Global Request Interceptor: Imagine needing to include an authentication token in every request's headers.
+
+---------------------------------------------------------------------------------------------------------------
+
+3.1 User
+
+*****************************************************************************************************************
+
+3.1.1 Login
+
+export const loginUser = async ({email , password}) => {
+    try {
+
+        const response = await axios.method("url", {
+                        body parameters
+
+        });
+
+        // if you remember we send token , username , userId from server 
+
+        // so from that we are setting token in localStorage for further usage
+        
+        localStorage.setItem("token", response.data.token);
+
+        // and we return name atlast
+        return response.data.name;
+        
+    } catch (error) 
+    {
+
+        console.log(error);
+        
+    }
+}
+*****************************************************************************************************************
+
+*****************************************************************************************************************
+
+
+3.1.2 Register
+
+export const registerUser = async ({ mobile , password , email , name}) => {
+    try {
+
+        const response = await axios.method("url", 
+        {
+            body parameters
+        }
+        );
+
+        // We have just sent a message upon creating user from server * User created successfully * 
+
+        console.log(response.data);
+        
+    } catch (error) 
+    {
+
+        console.log(error);
+        
+    }
+}
+*****************************************************************************************************************
+
+3.2 Jobs
+
+*****************************************************************************************************************
+
+3.2.1 Create Job Post
+
+export const createJobPost = async (JobPostPayload) => {
+    try {
+        const reqUrl = `http://localhost:4000/api/v1/job/create`;
+
+        // For creating a post we should login for authenticating the user we will sent token to server in headers to check its validness
+        // We get token from LocalStorage
+        
+        const token = localStorage.getItem("token");
+
+        // We set token in headers
+
+        axios.defaults.headers.common["Authorization"] = token;
+
+        ?/ We will send a request to server
+
+        const response = await axios.method(reqUrl, JobPostPayload);
+        console.log(response.data);
+    } catch (error) {
+        // If token time is expire we will make user login again
+        if (error.isTokenExpired) {
+            localStorage.clear();
+            Navigate("/login");
+        }
+        console.log(error);
+    }
+};
+
+*****************************************************************************************************************
+
+*****************************************************************************************************************
+
+3.2.2 Get Job Details by ID
+
+export const getJobPostById = async (jobPostId) => {
+    try {
+        const reqUrl = `http://localhost:4000/api/v1/job/job-details/${jobPostId}`;
+
+        // We are sending a request to server with jobPost id in url
+
+        // Get token from local storage  
+
+        const token = localStorage.getItem("token");
+
+        // why are we using token here 
+        // * For associating the Id with JobPost to only show edit button to that user who created it*
+
+        axios.defaults.headers.common["Authorization"] = token;
+
+        // We set token in header and sent a request 
+        const response = await axios.get(reqUrl);
+        return response.data ;
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+*****************************************************************************************************************
+
+*****************************************************************************************************************
+
+3.2.3 - Update Job Details by ID
+
+export const updateJobPostById = async (jobPostId, updatedFormData) => {
+    try {
+         // We are sending a request to server with jobPost id in url
+         
+        const reqUrl = `http://localhost:4000/api/v1/job/update/${jobPostId}`;
+
+         // Get token from local storage  
+
+        const token = localStorage.getItem("token");
+
+        // why are we using token here 
+        // * For associating the Id with JobPost to only updated by user who created it*
+        // We set token in header and sent a request 
+
+        axios.defaults.headers.common["Authorization"] = token;
+
+       
+
+        const response = await axios.put(reqUrl, updatedFormData);
+
+        return response.data;
+    } catch (error) {
+        console.log(error);
+        // toast something went wrong please try after sometime
+    }
+};
+
+*****************************************************************************************************************
+
+*****************************************************************************************************************
+
+3.2.4 Get All Jobs
+
+export const getAllJobPost = async (filter) => {
+    try {
+
+        // URL Endpoint:
+
+        // http://localhost:4000/api/v1/job/all: This is the base URL endpoint for a  API. It seems to be an endpoint for fetching all jobs.
+
+        // Query Parameters:
+
+/       / ?title=${filter?.title || ""}: This part of the URL constructs a query parameter for filtering jobs by their title.
+
+        // ${filter?.title || ""}: This expression embeds the value of filter?.title into the URL string. The ?. operator is optional chaining, ensuring that if filter is null or undefined, it won't throw an error. If filter?.title is falsy (null, undefined, empty string, etc.), it defaults to an empty string "". This effectively allows for conditional inclusion of the title query parameter.
+
+        // &skills=${filter?.skills || ""}: This constructs a query parameter for filtering jobs by skills in a similar way.
+        ${filter?.skills || ""}: This embeds the value of filter?.skills into the URL string. It follows the same logic as the title query parameter.
+
+        const reqUrl = `http://localhost:4000/api/v1/job/all?title=${
+            filter?.title || ""
+        }&skills=${filter?.skills || ""}`;
+
+        // Simply hit the API
+
+        const response = await axios.get(reqUrl);
+        console.log(response.data);
+        return response.data;
+    } catch (error) {
+        console.log(error);
+        // toast something went wrong please try after sometime
+    }
+};
+*****************************************************************************************************************
+
+-----------------------------------------------------------------------------------------------------------------------
+_______________________________________________________________________________________________________________________
+
+4.COMPONENTS
+
+import { useLocation, useNavigate } from "react-router-dom";
+
+                        {isLoggedIn && isEditable && (
+                                    <button
+                                        onClick={() => {
+                                            navigate("/job-post", {
+                                                state: {
+                                                    jobDetails: jobDetails,
+                                                    edit: true,
+                                                },
+                                            });
+                                        }}
+                                        className={styles.edit}
+                                    >
+                                        Edit Job
+                                    </button>
+                                )}
+
+In Navigate we can see other than link state variable is there from which we can pass value to other Component
+How to access this data in other Component
+
+    const { state } = useLocation();
+    const navigate = useNavigate();
+    const [stateData] = useState(state?.jobDetails);
+
+
+    _____________________________________________________________________________________________________________________

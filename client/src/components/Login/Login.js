@@ -35,7 +35,7 @@ function Login() {
             <input
                 className={styles.input}
                 name="email"
-                // value={formData.email}
+                value={formData.email}
                 onChange={handleFormChange}
                 type={"email"}
                 placeholder="Email"
@@ -43,7 +43,7 @@ function Login() {
             <input
                 className={styles.input}
                 name="password"
-                // value={formData.password}
+                value={formData.password}
                 onChange={handleFormChange}
                 type={"password"}
                 placeholder="Password"

@@ -19,6 +19,7 @@ const verifyToken = (req, res, next) => {
 
 const decodeJwtToken = (authHeader) => {
     try {
+        
         if (!authHeader) {
             console.log("Authorization header is missing.");
             return;

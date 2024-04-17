@@ -63,7 +63,6 @@ const createJobPost = async (req, res, next) => {
 
 const getJobDetailsById = async (req, res, next) => {
 
-
     try {
 
         const jobId = req.params.jobId;
